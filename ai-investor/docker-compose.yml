@@ -1,0 +1,10 @@
+version: "3.8"
+
+services:
+  ai-investor:
+    build: .
+    volumes:
+      - ./output:/app/output
+    env_file:
+      - .env
+    restart: "no"
