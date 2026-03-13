@@ -1,0 +1,7 @@
+services:
+  procurement:
+    build: .
+    env_file: .env
+    volumes:
+      - ./output:/app/output
+    command: python main.py "${KEYWORD:-software gestão}" "${CPV_CODE:-72000000}" "${COUNTRY:-PT}"
