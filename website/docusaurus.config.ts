@@ -15,12 +15,12 @@ const config: Config = {
   },
 
   // Set the production url of your site here
-  url: 'https://icpmtech.github.io',
-  // Set the /<baseUrl>/ pathname under which your site is served
-  // For GitHub pages deployment, it is often '/<projectName>/'
-  baseUrl: '/CrewAIBook/',
+  // When deploying on Vercel, override SITE_URL env var (e.g. https://crewaibook.vercel.app)
+  url: process.env.SITE_URL ?? 'https://icpmtech.github.io',
+  // On Vercel the site is served at the root; on GitHub Pages use '/CrewAIBook/'
+  baseUrl: process.env.BASE_URL ?? '/CrewAIBook/',
 
-  // GitHub pages deployment config.
+  // GitHub pages deployment config (used only when deploying to GitHub Pages).
   organizationName: 'icpmtech',
   projectName: 'CrewAIBook',
 
@@ -76,6 +76,7 @@ const config: Config = {
           position: 'left',
           label: 'Guia',
         },
+        {to: '/docs/procurement/overview', label: 'Contratação Pública', position: 'left'},
         {to: '/blog', label: 'Blog', position: 'left'},
         {
           href: 'https://github.com/icpmtech/CrewAIBook',
@@ -102,11 +103,23 @@ const config: Config = {
               label: 'Projeto AI Investor',
               to: '/docs/ai-investor/overview',
             },
+            {
+              label: 'Contratação Pública',
+              to: '/docs/procurement/overview',
+            },
           ],
         },
         {
           title: 'Recursos',
           items: [
+            {
+              label: 'TED Europa (API)',
+              href: 'https://api.ted.europa.eu',
+            },
+            {
+              label: 'BASE Portugal',
+              href: 'https://www.base.gov.pt',
+            },
             {
               label: 'CrewAI Oficial',
               href: 'https://docs.crewai.com',

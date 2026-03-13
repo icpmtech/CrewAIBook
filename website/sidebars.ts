@@ -18,6 +18,18 @@ const sidebars: SidebarsConfig = {
         'ai-investor/running',
       ],
     },
+    {
+      type: 'category',
+      label: 'Contratação Pública (TED/CPV)',
+      items: [
+        'procurement/overview',
+        'procurement/tools',
+        'procurement/main',
+        'procurement/environment',
+        'procurement/docker',
+        'procurement/running',
+      ],
+    },
     'architecture',
     'advanced',
   ],

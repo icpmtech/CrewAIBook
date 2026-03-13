@@ -29,6 +29,12 @@ function HomepageHeader() {
             style={{marginLeft: '1rem'}}>
             Ver Projecto AI Investor 📈
           </Link>
+          <Link
+            className="button button--outline button--lg"
+            to="/docs/procurement/overview"
+            style={{marginLeft: '1rem'}}>
+            Contratação Pública 🏛️
+          </Link>
         </div>
       </div>
     </header>
