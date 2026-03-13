@@ -45,7 +45,7 @@ Todos os contratos públicos da UE acima dos limites regulamentares são obrigat
 |---|---|---|
 | `cpv_specialist` | Identifica os códigos CPV correctos | `cpv_lookup_tool` |
 | `ted_researcher` | Pesquisa anúncios TED Europa | `ted_search_tool` |
-| `base_researcher` | Pesquisa contratos BASE Portugal | `base_portugal_search_tool` |
+| `base_researcher` | Pesquisa e detalha contratos BASE Portugal | `base_portugal_search_tool`, `base_contract_detail_tool` |
 | `market_analyst` | Analisa tendências de mercado | — |
 | `report_writer` | Redige o relatório final | — |
 

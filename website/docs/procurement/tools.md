@@ -6,7 +6,7 @@ sidebar_position: 2
 
 # Ferramentas de API de Contratação Pública
 
-O ficheiro `tools.py` implementa três ferramentas CrewAI para aceder às APIs oficiais de contratação pública.
+O ficheiro `tools.py` implementa quatro ferramentas CrewAI para aceder às APIs oficiais de contratação pública.
 
 ## Ferramenta 1: `ted_search_tool`
 
@@ -97,31 +97,63 @@ Pode explorar todos os códigos CPV em:
 
 ## Ferramenta 3: `base_portugal_search_tool`
 
-Pesquisa contratos públicos celebrados em Portugal no portal **BASE.gov.pt**.
+Obtém contratos públicos celebrados em Portugal via a **API REST JSON do portal BASE.gov.pt**.
+
+A abordagem usa o endpoint `base2/rest/contratos` com paginação por cabeçalho `Range`,
+conforme documentado no projeto [ajcerejeira/base.gov.pt](https://github.com/ajcerejeira/base.gov.pt).
 
 ```python
-BASE_API_BASE = "https://www.base.gov.pt/Base4"
+# Endpoint REST JSON canónico do BASE Portugal
+BASE_REST_API = "https://www.base.gov.pt/base2/rest/contratos"
 
 @tool("base_portugal_search_tool")
-def base_portugal_search_tool(keyword: str = "", cpv_code: str = "", page: int = 1) -> dict:
+def base_portugal_search_tool(start: int = 1, count: int = 20) -> dict:
     """
-    Pesquisa contratos públicos no portal BASE de Portugal.
+    Obtém contratos públicos do portal BASE de Portugal via API REST JSON.
 
     Args:
-        keyword:  Texto livre para pesquisar no objeto do contrato.
-        cpv_code: Código CPV para filtrar por categoria (opcional).
-        page:     Número de página de resultados.
+        start: Índice do primeiro contrato (por omissão 1).
+        count: Número de contratos a obter (por omissão 20, máx. 100).
     """
-    params = {"tipo": "contratos", "texto": keyword, "cpv": cpv_code, "pag": page}
-    response = httpx.get(
-        f"{BASE_API_BASE}/pt/resultados/",
-        params={k: v for k, v in params.items() if v},
-        headers={"Accept": "application/json"},
-        timeout=15,
-    )
+    end = start + min(count, 100) - 1
+    headers = {"Range": f"{start}-{end}"}
+    response = httpx.get(BASE_REST_API, headers=headers, timeout=20)
     response.raise_for_status()
     return response.json()
 ```
+
+### Paginação com cabeçalho `Range`
+
+O endpoint `base2/rest/contratos` usa o cabeçalho HTTP `Range` para paginar os resultados:
+
+```
+Range: 1-20    → contratos 1 a 20
+Range: 21-40   → contratos 21 a 40
+Range: 101-200 → contratos 101 a 200
+```
+
+---
+
+## Ferramenta 4: `base_contract_detail_tool`
+
+Obtém os **detalhes completos** de um contrato específico pelo seu ID.
+
+```python
+@tool("base_contract_detail_tool")
+def base_contract_detail_tool(contract_id: int) -> dict:
+    """
+    Obtém os detalhes de um contrato público português pelo seu ID.
+
+    Args:
+        contract_id: Identificador numérico único do contrato no BASE.
+    """
+    response = httpx.get(f"{BASE_REST_API}/{contract_id}", timeout=15)
+    response.raise_for_status()
+    return response.json()
+```
+
+O agente `base_researcher` usa esta ferramenta para obter informação detalhada (concorrentes,
+documentos, CPVs, etc.) dos contratos mais relevantes identificados pela ferramenta anterior.
 
 ### BASE vs TED
 
@@ -130,7 +162,13 @@ def base_portugal_search_tool(keyword: str = "", cpv_code: str = "", page: int =
 | Cobertura | Apenas Portugal | 27 países da UE |
 | Tipo de dados | Contratos celebrados | Anúncios de concursos |
 | Limites financeiros | Todos os contratos | Acima dos limiares comunitários |
-| URL | base.gov.pt | ted.europa.eu |
+| API | `base2/rest/contratos` | `api.ted.europa.eu/v3` |
+| Autenticação | Nenhuma | Opcional (público) |
+
+:::info Referência
+A estrutura da API BASE Portugal foi documentada pelo projeto open-source
+[ajcerejeira/base.gov.pt](https://github.com/ajcerejeira/base.gov.pt).
+:::
 
 ## Próximo passo
 

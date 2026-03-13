@@ -50,7 +50,16 @@ As ferramentas funcionam em modo público com limites mais baixos.
 
 ## API BASE Portugal
 
-O portal BASE.gov.pt disponibiliza dados públicos de contratos sem necessidade de autenticação.
+O portal BASE.gov.pt disponibiliza dados públicos de contratos sem necessidade de autenticação
+através do endpoint REST `base2/rest/contratos`.
+
+- **Listagem:** `GET https://www.base.gov.pt/base2/rest/contratos` (com cabeçalho `Range`)
+- **Detalhe:** `GET https://www.base.gov.pt/base2/rest/contratos/{id}`
+
+:::info Referência
+A estrutura desta API foi documentada pelo projeto open-source
+[ajcerejeira/base.gov.pt](https://github.com/ajcerejeira/base.gov.pt).
+:::
 
 🔗 [www.base.gov.pt](https://www.base.gov.pt)
 

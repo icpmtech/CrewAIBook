@@ -14,7 +14,7 @@ Uso:
 
 import sys
 from crewai import Agent, Task, Crew, Process
-from tools import ted_search_tool, cpv_lookup_tool, base_portugal_search_tool
+from tools import ted_search_tool, cpv_lookup_tool, base_portugal_search_tool, base_contract_detail_tool
 
 # ── Agentes ───────────────────────────────────────────────────────────────────
 
@@ -50,10 +50,11 @@ base_researcher = Agent(
     goal="Find and analyse public contracts published on Portugal's BASE portal for '{keyword}'",
     backstory=(
         "You are a specialist in Portuguese public procurement law (Código dos Contratos "
-        "Públicos – CCP) and the BASE.gov.pt portal. You monitor public contracts awarded "
-        "by Portuguese public entities and identify market trends and opportunities."
+        "Públicos – CCP) and the BASE.gov.pt portal. You use the BASE REST API "
+        "(base2/rest/contratos) to retrieve and analyse contracts, fetching details "
+        "for the most relevant ones using their numeric IDs."
     ),
-    tools=[base_portugal_search_tool],
+    tools=[base_portugal_search_tool, base_contract_detail_tool],
     verbose=True,
 )
 
@@ -115,11 +116,14 @@ ted_task = Task(
 
 base_task = Task(
     description=(
-        "Search Portugal's BASE.gov.pt portal for public contracts related to '{keyword}'. "
+        "Use the BASE Portugal REST API (base2/rest/contratos) to retrieve recent public "
+        "contracts. Fetch a batch of contracts using the Range-based pagination, then use "
+        "base_contract_detail_tool to get full details for the most relevant contracts "
+        "related to '{keyword}'. "
         "Extract: contract object, contracting entity, contractor, contract value and date."
     ),
     expected_output=(
-        "A structured list of Portuguese contracts found on BASE.gov.pt, each with: "
+        "A structured list of Portuguese contracts from BASE.gov.pt, each with: "
         "object, authority, contractor, value and date. "
         "Include a summary of total value and most active contracting entities."
     ),

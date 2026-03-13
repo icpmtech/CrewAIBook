@@ -3,17 +3,18 @@ Procurement AI – Ferramentas de Contratação Pública
 
 Ferramentas CrewAI para pesquisar anúncios de contratos públicos via:
   - TED (Tenders Electronic Daily) API da Europa
-  - BASE.gov.pt API de Portugal
+  - BASE.gov.pt REST API de Portugal (base2/rest/contratos)
+    Abordagem inspirada em https://github.com/ajcerejeira/base.gov.pt
   - SIMAP CPV para lookup de códigos CPV
 """
 
-import os
 import httpx
 from crewai.tools import tool
 
 
 TED_API_BASE = "https://api.ted.europa.eu/v3"
-BASE_API_BASE = "https://www.base.gov.pt/Base4"
+# BASE Portugal canonical JSON REST API (used by ajcerejeira/base.gov.pt)
+BASE_REST_API = "https://www.base.gov.pt/base2/rest/contratos"
 SIMAP_CPV_API = "https://simap.ted.europa.eu/api/cpv"
 
 
@@ -126,66 +127,78 @@ def cpv_lookup_tool(keyword: str, lang: str = "pt") -> dict:
 
 
 @tool("base_portugal_search_tool")
-def base_portugal_search_tool(keyword: str = "", cpv_code: str = "", page: int = 1) -> dict:
+def base_portugal_search_tool(start: int = 1, count: int = 20) -> dict:
     """
-    Pesquisa contratos públicos no portal BASE de Portugal (base.gov.pt).
+    Obtém contratos públicos do portal BASE de Portugal via API REST JSON.
 
-    O portal BASE é a plataforma oficial portuguesa de contratação pública e
-    disponibiliza todos os contratos celebrados por entidades públicas em Portugal.
+    Usa o endpoint base2/rest/contratos com cabeçalho Range para paginação,
+    seguindo a abordagem documentada em https://github.com/ajcerejeira/base.gov.pt.
+    Retorna os campos principais de cada contrato sem necessidade de autenticação.
 
     Args:
-        keyword:  Texto livre para pesquisar no objeto do contrato.
-        cpv_code: Código CPV para filtrar por categoria (opcional).
-        page:     Número de página de resultados (por omissão 1).
+        start: Índice do primeiro contrato a obter (por omissão 1).
+        count: Número de contratos a obter por página (por omissão 20, máx. 100).
 
     Returns:
-        Dicionário com lista de contratos e metadados.
+        Dicionário com a lista de contratos e os índices de paginação usados.
     """
-    params = {
-        "tipo": "contratos",
-        "texto": keyword,
-        "cpv": cpv_code,
-        "pag": page,
-    }
+    end = start + min(count, 100) - 1
+    headers = {"Range": f"{start}-{end}"}
 
     try:
         response = httpx.get(
-            f"{BASE_API_BASE}/pt/resultados/",
-            params={k: v for k, v in params.items() if v},
-            headers={"Accept": "application/json"},
-            timeout=15,
+            BASE_REST_API,
+            headers=headers,
+            timeout=20,
         )
         response.raise_for_status()
-
-        # BASE returns HTML or JSON depending on Accept header; handle both
-        try:
-            data = response.json()
-        except Exception:
-            # Fallback: return raw URL for the agent to inspect
-            return {
-                "url": str(response.url),
-                "note": "BASE portal retornou HTML. Acede diretamente ao URL para ver os contratos.",
-                "results": [],
-            }
-
-        contracts = data.get("items", data.get("contratos", []))
+        contracts = response.json()
         return {
-            "total": data.get("total", len(contracts)),
-            "page": page,
+            "range_start": start,
+            "range_end": end,
+            "count": len(contracts),
             "results": [
                 {
                     "id": c.get("id", ""),
-                    "object": c.get("objetoContrato", c.get("object", "")),
-                    "entity": c.get("entidadeAdjudicante", c.get("authority", "")),
-                    "contractor": c.get("adjudicatarios", c.get("contractor", "")),
-                    "value": c.get("precoContratual", c.get("value", "")),
-                    "date": c.get("dataCelebracaoContrato", c.get("date", "")),
-                    "cpv": c.get("cpv", ""),
-                    "url": f"https://www.base.gov.pt/Base4/pt/detalhe/?type=contratos&id={c.get('id', '')}",
+                    "object": c.get("objectContractDescription", c.get("contractObject", "")),
+                    "entity": c.get("contractingAuthority", c.get("entidade", "")),
+                    "contractor": c.get("awardedTo", c.get("adjudicatario", "")),
+                    "value": c.get("contractPrice", c.get("preco", "")),
+                    "date": c.get("signingDate", c.get("dataCelebracaoContrato", "")),
+                    "cpv": c.get("cpvs", c.get("cpv", "")),
+                    "url": f"https://www.base.gov.pt/base2/rest/contratos/{c.get('id', '')}",
                 }
-                for c in contracts
+                for c in (contracts if isinstance(contracts, list) else [])
             ],
         }
+    except httpx.HTTPStatusError as e:
+        return {"error": f"Erro HTTP {e.response.status_code}: {e.response.text[:200]}"}
+    except Exception as e:
+        return {"error": str(e)}
+
+
+@tool("base_contract_detail_tool")
+def base_contract_detail_tool(contract_id: int) -> dict:
+    """
+    Obtém os detalhes completos de um contrato público português pelo seu ID.
+
+    Usa o endpoint base2/rest/contratos/{id} do portal BASE.gov.pt,
+    seguindo a abordagem documentada em https://github.com/ajcerejeira/base.gov.pt.
+
+    Args:
+        contract_id: Identificador numérico único do contrato no portal BASE.
+
+    Returns:
+        Dicionário com todos os campos do contrato (objeto, entidade, adjudicatário,
+        valor, datas, CPVs, concorrentes, documentos, etc.).
+    """
+    try:
+        response = httpx.get(
+            f"{BASE_REST_API}/{contract_id}",
+            timeout=15,
+        )
+        response.raise_for_status()
+        return response.json()
     except httpx.HTTPStatusError as e:
         return {"error": f"Erro HTTP {e.response.status_code}: {e.response.text[:200]}"}
     except Exception as e:

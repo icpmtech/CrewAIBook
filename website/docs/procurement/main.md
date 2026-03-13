@@ -48,9 +48,11 @@ base_researcher = Agent(
     goal="Find and analyse public contracts on Portugal's BASE portal for '{keyword}'",
     backstory=(
         "You are a specialist in Portuguese public procurement law (CCP) "
-        "and the BASE.gov.pt portal."
+        "and the BASE.gov.pt portal. You use the BASE REST API "
+        "(base2/rest/contratos) to retrieve and analyse contracts, fetching details "
+        "for the most relevant ones using their numeric IDs."
     ),
-    tools=[base_portugal_search_tool],
+    tools=[base_portugal_search_tool, base_contract_detail_tool],
     verbose=True,
 )
 ```
@@ -88,7 +90,7 @@ report_writer = Agent(
 |---|---|---|
 | `cpv_task` | `cpv_specialist` | Lista de códigos CPV relevantes |
 | `ted_task` | `ted_researcher` | Anúncios TED + resumo de valores |
-| `base_task` | `base_researcher` | Contratos BASE + entidades ativas |
+| `base_task` | `base_researcher` | Contratos BASE + detalhes via REST API |
 | `analysis_task` | `market_analyst` | Análise de tendências e compradores |
 | `report_task` | `report_writer` | Relatório Markdown completo |
 
